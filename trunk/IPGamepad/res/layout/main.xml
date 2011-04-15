@@ -3,5 +3,5 @@
 	android:id="@+id/main_view"
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent"
-	android:background="#FF000000">
+	android:background="#FF111111">
 </FrameLayout>
