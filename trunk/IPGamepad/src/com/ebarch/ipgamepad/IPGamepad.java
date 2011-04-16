@@ -4,8 +4,9 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -19,22 +20,13 @@ public class IPGamepad extends Activity {
     private float leftCenterX, leftCenterY, rightCenterX, rightCenterY;
     
     /* CONSTANTS - Used for tweaking the UI */
-    private final float TARGET_ZONE_THICKNESS = 5;
-    private final float TARGET_ZONE_CENTER_THICKNESS = 15;
-    private final float TARGET_ZONE_CLEARANCE = 10;
-    private final int TARGET_ZONE_BORDER_COLOR = 0xFF000099;
-    private final int TARGET_ZONE_INNER_COLOR = 0xFF222222;
-    private final int INDICATOR_COLOR = 0xFF000000;
-    private final float INDICATOR_LINE_WIDTH = 5;
-    private final float INDICATOR_WIDTH = 30;
+    private final double JOYSTICK_BACK_SCALE_FACTOR = 1.25;
+    private final double JOYSTICK_FRONT_SCALE_FACTOR = 2.1;
     private final int FINGER_OFFSET = 100;
     
     // We want to know if we should send data over or not
     private boolean controlsAlive = false;
-	
-    // Store the views for the indicators
-    View priIndicator;
-    View secIndicator;
+    
     
     /** Called when the activity is first created. */
     @Override
@@ -44,11 +36,11 @@ public class IPGamepad extends Activity {
         setContentView(R.layout.main);
         
         mainLayout = (FrameLayout)findViewById(R.id.main_view);
-        mainLayout.addView(new drawTargetZones(this));
+        
+        mainLayout.addView(new drawStaticLayout(this));
         
         // Draw the initial points before a touch event occurs - this just places them smack in the center of the "target zones"
-    	priIndicator = new drawIndicator(this,0,0,true);
-    	mainLayout.addView(priIndicator);
+        moveIndicatorsToCenter();
     }
     
     
@@ -75,125 +67,74 @@ public class IPGamepad extends Activity {
 	        	if (mPos1X < (viewWidth / 2)) {	// The first point is on the left
 	        		// Make sure the user's finger is within the target zone, otherwise don't update
 	        		if (Math.pow((mPos1X - leftCenterX),2) + Math.pow((mPos1Y - leftCenterY),2) < Math.pow(rOuter,2)) {
-	        			mainLayout.removeView(priIndicator);
-	        			priIndicator = new drawIndicator(this,mPos1X,mPos1Y,false);
-	        			mainLayout.addView(priIndicator);
+	        			moveLeftIndicator(mPos1X,mPos1Y);
 	        		}
 	        		if (Math.pow((mPos2X - rightCenterX),2) + Math.pow((mPos2Y - rightCenterY),2) < Math.pow(rOuter,2)) {
-	        			mainLayout.removeView(secIndicator);
-	        			secIndicator = new drawIndicator(this,mPos2X,mPos2Y,false);
-	        			mainLayout.addView(secIndicator);
+	        			moveRightIndicator(mPos2X,mPos2Y);
 	        		}
 	        	}
 	        	else {	// The first point is on the right
 	        		// Make sure the user's finger is within the target zone, otherwise don't update
 	        		if (Math.pow((mPos1X - rightCenterX),2) + Math.pow((mPos1Y - rightCenterY),2) < Math.pow(rOuter,2)) {
-	        			mainLayout.removeView(priIndicator);
-	        			priIndicator = new drawIndicator(this,mPos1X,mPos1Y,false);
-	        			mainLayout.addView(priIndicator);
+	        			moveLeftIndicator(mPos1X,mPos1Y);
 	        		}
 	        		if (Math.pow((mPos2X - leftCenterX),2) + Math.pow((mPos2Y - leftCenterY),2) < Math.pow(rOuter,2)) {
-	        			mainLayout.removeView(secIndicator);
-	        			secIndicator = new drawIndicator(this,mPos2X,mPos2Y,false);
-	        			mainLayout.addView(secIndicator);
+	        			moveRightIndicator(mPos2X,mPos2Y);
 	        		}
 	        	}
         	}
         	else {
         		// We had an exception - move the indicators to the center and make controlsAlive false
         		controlsAlive = false;
-        		mainLayout.removeView(priIndicator);
-            	mainLayout.removeView(secIndicator);
-            	priIndicator = new drawIndicator(this,leftCenterX,leftCenterY,false);
-            	secIndicator = new drawIndicator(this,rightCenterX,rightCenterY,false);
-            	mainLayout.addView(priIndicator);
-            	mainLayout.addView(secIndicator);
+        		moveIndicatorsToCenter();
         	}
         }
         
         return true;
     }
     
+    public void moveIndicatorsToCenter() {
+    	//TODO
+    }
     
-    /* This class handles drawing the points and lines associated with where the user's fingers are at on the screen */
-    public class drawIndicator extends View {
-        private final float x;
-        private final float y;
-        private final Paint ptPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint lPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final boolean initial;	// Is this the first call before a touch event has occurred?
+    public void moveRightIndicator(float x, float y) {
+    	//TODO
+    }
+
+    public void moveLeftIndicator(float x, float y) {
+    	//TODO
+    }
+    
+    /* This class handles drawing the initial target zones on the screen */
+    public class drawStaticLayout extends View {
+    	Bitmap joystick_back;
         
-        public drawIndicator(Context context, float x, float y, boolean initial) {
+        public drawStaticLayout(Context context) {
             super(context);
-            ptPaint.setColor(INDICATOR_COLOR);
-            ptPaint.setStrokeWidth(INDICATOR_WIDTH);
-            lPaint.setColor(INDICATOR_COLOR);
-            lPaint.setStrokeWidth(INDICATOR_LINE_WIDTH);
-            this.x = x;
-            this.y = y;
-            this.initial = initial;
+            
+            joystick_back = BitmapFactory.decodeResource(getResources(), R.drawable.joy_back);
         }
         
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            // If this isn't the first call, we'll only be drawing one indicator (in either the left or right target zone)
-            if (initial == false) {
-            	// This is for the line that traces the distance between the center of the target zone and the user's finger
-	            if (x < (viewWidth / 2))	// Position is in the left half of the screen, draw in reference to the leftCenterX/Y
-	            		canvas.drawLine(leftCenterX, leftCenterY, x, y, lPaint);
-	            else						// Position is in the right half of the screen
-	            		canvas.drawLine(rightCenterX, rightCenterY, x, y, lPaint);
-	            
-	            // Okay, so let's place in the indicator of where the user's finger is
-	            canvas.drawPoint(x, y, ptPaint);
-            }
-            else {
-            	// This is the first call, create 2 of the finger indicators right in the center of the target zones
-            	// We don't need to worry about the indicator lines because we're in the center right now
-            	canvas.drawPoint(leftCenterX, leftCenterY, ptPaint);
-            	canvas.drawPoint(rightCenterX, rightCenterY, ptPaint);
-            }
-        }
-    }
-    
-    
-    /* This class handles the initial drawing of the "target zones" or circles used as joysticks */
-    public class drawTargetZones extends View {
-        private final Paint outerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint innerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint ptPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        
-        public drawTargetZones(Context context) {
-            super(context);
-            outerPaint.setColor(TARGET_ZONE_BORDER_COLOR);
-            innerPaint.setColor(TARGET_ZONE_INNER_COLOR);
-            ptPaint.setColor(INDICATOR_COLOR);
-            ptPaint.setStrokeWidth(TARGET_ZONE_CENTER_THICKNESS);
-        }
-        
-        @Override
-        protected void onDraw(Canvas canvas) {
-        	viewWidth = (float)mainLayout.getWidth();
+            
+            viewWidth = (float)mainLayout.getWidth();
             viewHeight = (float)mainLayout.getHeight();
-            rOuter = (viewHeight/2) - TARGET_ZONE_CLEARANCE;
             leftCenterX = (float)(viewWidth * .25);
             leftCenterY = (float)(viewHeight / 2);
             rightCenterX = (float)(viewWidth * .75);
             rightCenterY = (float)(viewHeight / 2);
-            super.onDraw(canvas);
+            int scaledJBack = (int)((float)viewHeight / JOYSTICK_BACK_SCALE_FACTOR);
+            rOuter = (float)scaledJBack / (float)4;
+            int joyTop = (int)leftCenterY - (int)((float)scaledJBack / 2);
+            int joyLeft1 = (int)leftCenterX - (int)((float)scaledJBack / 2);
+            int joyLeft2 = (int)rightCenterX - (int)((float)scaledJBack / 2);
             
-            // Draw left target zone
-            canvas.drawCircle(leftCenterX, leftCenterY, rOuter, outerPaint);
-            canvas.drawCircle(leftCenterX, leftCenterY, rOuter - TARGET_ZONE_THICKNESS, innerPaint);
+            joystick_back = Bitmap.createScaledBitmap(joystick_back, scaledJBack, scaledJBack, true);
             
-            // Draw right target zone
-            canvas.drawCircle(rightCenterX, rightCenterY, rOuter, outerPaint);
-            canvas.drawCircle(rightCenterX, rightCenterY, rOuter - TARGET_ZONE_THICKNESS, innerPaint);
-            
-            // Draw points in the middle of the target zones
-            canvas.drawPoint(leftCenterX, leftCenterY, ptPaint);
-            canvas.drawPoint(rightCenterX, rightCenterY, ptPaint);
+            canvas.drawBitmap(joystick_back, joyLeft1, joyTop, null);
+            canvas.drawBitmap(joystick_back, joyLeft2, joyTop, null);
         }
     }
 }
