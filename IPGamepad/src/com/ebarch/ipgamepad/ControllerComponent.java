@@ -6,52 +6,46 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 
 public class ControllerComponent extends View {
-	private Drawable mImage;
-    private float mPosX, mPosY;
-    private float mLatestX, mLatestY;
-    private float mLastX, mLastY;
-    private float radius;
-    private float iX, iY;
+	private Drawable mImage;	// The indicator image that we're drawing
+	private float radius;		// Radius of the indicator image
+    private float mX, mY;		// Current X,Y position
+    private float iX, iY;		// Initial X,Y position
     
     public ControllerComponent(Context context, float initX, float initY, float scale, int imgResource) {
         super(context);
+        
+        // Get the image resource
         mImage = context.getResources().getDrawable(imgResource);
         float diameter = (mImage.getIntrinsicHeight() / scale);
         radius = diameter / 2;
-        mImage.setBounds(0, 0, (int)diameter, (int)diameter);
+        mImage.setBounds(0, 0, (int)diameter, (int)diameter);	// Scale the image appropriately
 
-        mLatestX = mLastX = mPosX = iX = (initX - radius);
-        mLatestY = mLastY = mPosY = iY = (initY - radius);
+        // Initial setup
+        mX = iX = (initX - radius);
+        mY = iY = (initY - radius);
     }
     
-    public void setX(float x) {
-    	mLatestX = (x - radius);
+    /* Update the X,Y position of the indicator */
+    public void setXY(float x, float y) {
+    	mX = (x - radius);
+    	mY = (y - radius);
+    	super.invalidate();
     }
     
-    public void setY(float y) {
-    	mLatestY = (y - radius);
-    }
-    
+    /* Update the X,Y position of the indicator to those of its initial values */
     public void setInitial() {
-    	mLatestX = iX;
-    	mLatestY = iY;
+    	mX = iX;
+    	mY = iY;
+    	super.invalidate();
     }
 
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         
-        final float dx = mLatestX - mLastX;
-        final float dy = mLatestY - mLastY;
-
-        mPosX += dx;
-        mPosY += dy;
-
-        mLastX = mLatestX;
-        mLastY = mLatestY;
-        
+        // Translate by the current X,Y values
         canvas.save();
-        canvas.translate(mPosX, mPosY);
+        canvas.translate(mX, mY);
         mImage.draw(canvas);
         canvas.restore();
     }
