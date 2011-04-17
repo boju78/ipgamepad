@@ -29,7 +29,7 @@ public class IPGamepad extends Activity {
     
     // Networking constants - these should eventually become preferences
     private final int PACKET_RATE_MS = 25;	//Number of ms between UDP packet transmission
-    private final String IP_ADDRESS = "10.4.4.33";
+    private final String IP_ADDRESS = "192.168.1.22";
     private final int PORT = 4444;
     
     private volatile ControllerComponent leftIndicator;
@@ -206,8 +206,8 @@ public class IPGamepad extends Activity {
                 	if (controlsAlive) {
                 		// Robot is enabled - let's send some data
     		    		try {
-    		    			// A packet contains 4 bytes - leftJoystickX, leftJoystickY, rightJoystickX, rightJoystickY
-    						byte[] buf = new byte[] { leftIndicator.getJoystickByteX(), leftIndicator.getJoystickByteY(), rightIndicator.getJoystickByteX(), rightIndicator.getJoystickByteY() };
+    		    			// A packet contains 4 bytes - leftJoystickY, leftJoystickX, rightJoystickY, rightJoystickX
+    						byte[] buf = new byte[] { leftIndicator.getJoystickByteY(), leftIndicator.getJoystickByteX(), rightIndicator.getJoystickByteY(), rightIndicator.getJoystickByteX() };
     						DatagramPacket p = new DatagramPacket(buf, buf.length, ipAddress, PORT);
     						udpSocket.send(p);
     					} catch (Exception e) {}
