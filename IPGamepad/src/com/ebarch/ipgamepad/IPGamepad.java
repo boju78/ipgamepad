@@ -22,27 +22,29 @@ public class IPGamepad extends Activity {
     /* CONSTANTS - Used for tweaking the UI */
     private final double JOYSTICK_BACK_SCALE_FACTOR = 1.25;
     private final double JOYSTICK_FRONT_SCALE_FACTOR = 1.15;
-    private final float JOYSTICK_TRIM = 40;	// Keep the joystick within the target zones - minor tweak
+    private final float JOYSTICK_TRIM = 50;	// Keep the joystick within the target zones - minor tweak
     
     // We want to know if we should send data over or not
     private boolean controlsAlive = false;
     
     // Networking constants - these should eventually become preferences
     private final int PACKET_RATE_MS = 25;	//Number of ms between UDP packet transmission
-    private final String IP_ADDRESS = "10.4.4.199";
+    private final String IP_ADDRESS = "10.4.4.33";
     private final int PORT = 4444;
     
     private volatile ControllerComponent leftIndicator;
     private volatile ControllerComponent rightIndicator;
     private volatile StaticLayout mainStaticLayout;
     
-    private volatile Thread networkThread;
+    private volatile NetworkingThread networkThread;
+    private volatile DatagramSocket udpSocket;
+    private volatile InetAddress ipAddress;
     
     private float viewWidth, viewHeight;
 	private float leftCenterX, leftCenterY;
 	private float rightCenterX, rightCenterY;
 	private float viewOffset, rOuter;
-    
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,6 +57,15 @@ public class IPGamepad extends Activity {
         // Create and draw the main layout for the joysticks
         mainStaticLayout = new StaticLayout(this);
         mainLayout.addView(mainStaticLayout);
+        
+        // Setup the networking
+        try {
+        	udpSocket = new DatagramSocket();
+			ipAddress = InetAddress.getByName(IP_ADDRESS);
+        }
+        catch (Exception e) {
+        	// Networking exception
+        }
     }
     
 
@@ -89,11 +100,11 @@ public class IPGamepad extends Activity {
 	        	}
 	        	else {	// The first point is on the right
 	        		// Make sure the user's finger is within the target zone, otherwise don't update
-	        		if (Math.pow((mPos1X - rightCenterX),2) + Math.pow((mPos1Y - rightCenterY),2) < Math.pow(rOuter,2)) {
-	        			moveLeftIndicator(mPos1X,mPos1Y);
-	        		}
 	        		if (Math.pow((mPos2X - leftCenterX),2) + Math.pow((mPos2Y - leftCenterY),2) < Math.pow(rOuter,2)) {
-	        			moveRightIndicator(mPos2X,mPos2Y);
+	        			moveLeftIndicator(mPos2X,mPos2Y);
+	        		}
+	        		if (Math.pow((mPos1X - rightCenterX),2) + Math.pow((mPos1Y - rightCenterY),2) < Math.pow(rOuter,2)) {
+	        			moveRightIndicator(mPos1X,mPos1Y);
 	        		}
 	        	}
         	}
@@ -140,8 +151,8 @@ public class IPGamepad extends Activity {
             joystick_back = BitmapFactory.decodeResource(getResources(), R.drawable.joy_back);
         }
         
+        // This method is called the first time the view is drawn on the screen - sets up all the values we'll need
         protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld){
-        	// This method is called the first time the view is drawn on the screen - sets up all the values we'll need
             super.onSizeChanged(xNew, yNew, xOld, yOld);
             
             viewWidth = (float)xNew;
@@ -167,8 +178,8 @@ public class IPGamepad extends Activity {
 	        joystick_back = Bitmap.createScaledBitmap(joystick_back, (int)scaledJBack, (int)scaledJBack, true);
 	        
 	        // Create the joystick indicators
-	        leftIndicator = new ControllerComponent(mContext, leftCenterX, leftCenterY, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
-	        rightIndicator = new ControllerComponent(mContext, rightCenterX, rightCenterY, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
+	        leftIndicator = new ControllerComponent(mContext, leftCenterX, leftCenterY, rOuter, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
+	        rightIndicator = new ControllerComponent(mContext, rightCenterX, rightCenterY, rOuter, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
 	        
 	        // Initial draw of the joystick indicators
 	        mainLayout.addView(leftIndicator);
@@ -186,58 +197,63 @@ public class IPGamepad extends Activity {
     }
     
     
-    /* Networking/Thread Start Method */
-    public synchronized void startNetThread(){
-    	if(networkThread == null) {
-    		networkThread = new Thread();
-    		networkThread.start();
-    	}
+    /* The main networking thread that sends the joystick UDP packets */
+    class NetworkingThread extends Thread {
+        private volatile boolean stop = false;
+
+        public void run() {
+                while (!stop) {
+                	if (controlsAlive) {
+                		// Robot is enabled - let's send some data
+    		    		try {
+    		    			// A packet contains 4 bytes - leftJoystickX, leftJoystickY, rightJoystickX, rightJoystickY
+    						byte[] buf = new byte[] { leftIndicator.getJoystickByteX(), leftIndicator.getJoystickByteY(), rightIndicator.getJoystickByteX(), rightIndicator.getJoystickByteY() };
+    						DatagramPacket p = new DatagramPacket(buf, buf.length, ipAddress, PORT);
+    						udpSocket.send(p);
+    					} catch (Exception e) {}
+    					try {
+    						Thread.sleep(PACKET_RATE_MS);
+    					}
+    					catch (InterruptedException e) {}
+    	    		}
+    	    		else {
+    	    			// Robot is disabled - wait a little bit before trying again
+    	    			try {
+    						Thread.sleep(PACKET_RATE_MS);
+    					}
+    					catch (InterruptedException e) {}
+    	    		}
+                }
+        }
+
+        public synchronized void requestStop() {
+                stop = true;
+        }
     }
 
     
-    /* Networking/Thread Stop Method */
-    public synchronized void stopNetThread(){
-    	if(networkThread != null) {
-    		Thread stopThread = networkThread;
-    		networkThread = null;
-    		stopThread.interrupt();
-    	}
+    /* Call this to start the main networking thread */
+    public synchronized void startNetworkingThread(){
+        if(networkThread == null){       
+                networkThread = new NetworkingThread();
+                networkThread.start();
+        }
     }
 
     
-    /* Main data transmit method - this handles the UDP crafting and transmission */
-    public void run(){
-    	while(Thread.currentThread() == networkThread){
-    		if (controlsAlive) {
-	    		/*try {
-	    			//TODO - Send the proper values for joysticks here
-					byte[] buf = new byte[] { (byte)0, (byte)255 };
-					//TODO - Only transmit data when connected to WiFi
-					DatagramSocket s = new DatagramSocket();
-					InetAddress local = InetAddress.getByName(IP_ADDRESS);
-					DatagramPacket p = new DatagramPacket(buf, buf.length, local, PORT);
-					s.send(p);
-				} catch (Exception e) {}*/
-				try {
-					Thread.sleep(PACKET_RATE_MS);
-				}
-				catch (InterruptedException e) {}
-    		}
-    		else {
-    			// Robot is disabled - wait a little bit before trying again
-    			try {
-					Thread.sleep(PACKET_RATE_MS);
-				}
-				catch (InterruptedException e) {}
-    		}
-    	}
+    /* Call this to stop the main networking thread */
+    public synchronized void stopNetworkingThread(){
+        if(networkThread != null){
+                networkThread.requestStop();
+                networkThread = null;
+        }
     }
     
     
     @Override
     protected void onPause() {
     	// End Ethernet communications
-    	stopNetThread();
+    	stopNetworkingThread();
     	
     	super.onPause();
     }
@@ -248,6 +264,6 @@ public class IPGamepad extends Activity {
     	super.onResume();
     	
     	// Begin Ethernet communications
-    	startNetThread();
+    	startNetworkingThread();
     }
 }
