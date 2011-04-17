@@ -186,7 +186,7 @@ public class IPGamepad extends Activity {
     }
     
     
-    /* Networking/Thread Methods */
+    /* Networking/Thread Start Method */
     public synchronized void startNetThread(){
     	if(networkThread == null) {
     		networkThread = new Thread();
@@ -195,6 +195,7 @@ public class IPGamepad extends Activity {
     }
 
     
+    /* Networking/Thread Stop Method */
     public synchronized void stopNetThread(){
     	if(networkThread != null) {
     		Thread stopThread = networkThread;
@@ -218,6 +219,13 @@ public class IPGamepad extends Activity {
 					s.send(p);
 				} catch (Exception e) {}*/
 				try {
+					Thread.sleep(PACKET_RATE_MS);
+				}
+				catch (InterruptedException e) {}
+    		}
+    		else {
+    			// Robot is disabled - wait a little bit before trying again
+    			try {
 					Thread.sleep(PACKET_RATE_MS);
 				}
 				catch (InterruptedException e) {}
