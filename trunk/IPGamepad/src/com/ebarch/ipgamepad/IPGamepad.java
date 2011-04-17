@@ -1,5 +1,9 @@
 package com.ebarch.ipgamepad;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.Display;
@@ -13,7 +17,7 @@ import android.widget.FrameLayout;
 
 
 public class IPGamepad extends Activity {
-    FrameLayout mainLayout;
+    private volatile FrameLayout mainLayout;
     
     /* CONSTANTS - Used for tweaking the UI */
     private final double JOYSTICK_BACK_SCALE_FACTOR = 1.25;
@@ -23,14 +27,21 @@ public class IPGamepad extends Activity {
     // We want to know if we should send data over or not
     private boolean controlsAlive = false;
     
-    ControllerComponent leftIndicator;
-    ControllerComponent rightIndicator;
-    StaticLayout mainStaticLayout;
+    // Networking constants - these should eventually become preferences
+    private final int PACKET_RATE_MS = 25;	//Number of ms between UDP packet transmission
+    private final String IP_ADDRESS = "10.4.4.199";
+    private final int PORT = 4444;
     
-    public float viewWidth, viewHeight;
-	public float leftCenterX, leftCenterY;
-	public float rightCenterX, rightCenterY;
-	public float viewOffset, rOuter;
+    private volatile ControllerComponent leftIndicator;
+    private volatile ControllerComponent rightIndicator;
+    private volatile StaticLayout mainStaticLayout;
+    
+    private volatile Thread networkThread;
+    
+    private float viewWidth, viewHeight;
+	private float leftCenterX, leftCenterY;
+	private float rightCenterX, rightCenterY;
+	private float viewOffset, rOuter;
     
     /** Called when the activity is first created. */
     @Override
@@ -41,8 +52,9 @@ public class IPGamepad extends Activity {
         
         mainLayout = (FrameLayout)findViewById(R.id.main_view);
         
+        // Create and draw the main layout for the joysticks
         mainStaticLayout = new StaticLayout(this);
-        mainLayout.addView(mainStaticLayout);  
+        mainLayout.addView(mainStaticLayout);
     }
     
 
@@ -97,26 +109,25 @@ public class IPGamepad extends Activity {
     
     
     public void moveIndicatorsToCenter() {
+    	// Move indicators to initial position and Redraw
     	rightIndicator.setInitial();
     	leftIndicator.setInitial();
-    	leftIndicator.invalidate();
-    	rightIndicator.invalidate();
     }
+    
     
     public void moveRightIndicator(float x, float y) {
-    	rightIndicator.setX(x);
-    	rightIndicator.setY(y);
-    	rightIndicator.invalidate();
+    	// Move right indicator to x/y and Redraw
+    	rightIndicator.setXY(x, y);
     }
 
+    
     public void moveLeftIndicator(float x, float y) {
-    	leftIndicator.setX(x);
-    	leftIndicator.setY(y);
-    	leftIndicator.invalidate();
+    	// Move left indicator to x/y and Redraw
+    	leftIndicator.setXY(x, y);
     }
     
     
-    /* This class handles drawing the initial target zones on the screen */
+    /* This class handles drawing the initial target zones and indicators on the screen */
     public class StaticLayout extends View {
     	Bitmap joystick_back;
     	Context mContext;
@@ -136,25 +147,30 @@ public class IPGamepad extends Activity {
             viewWidth = (float)xNew;
 	        viewHeight = (float)yNew;
 	        
+	        // Get the height of the entire screen and subtract out the height of our view to find the offset for touch events
 	        Display display = getWindowManager().getDefaultDisplay();
 	        viewOffset = display.getHeight() - viewHeight;
 	        
+	        // Find the centers of the joysticks
 	        leftCenterX = (viewWidth / 4);
 	        leftCenterY = (viewHeight / 2);
 	        rightCenterX = (viewWidth * (float).75);
 	        rightCenterY = (viewHeight / 2);
 	        
+	        // get values for top/left when drawing joysticks
 	        scaledJBack = (viewHeight / (float)JOYSTICK_BACK_SCALE_FACTOR);
 	        joyTop = leftCenterY - (scaledJBack / 2);
 	        joyLeft1 = leftCenterX - (scaledJBack / 2);
 	        joyLeft2 = rightCenterX - (scaledJBack / 2);
 	        
-	        rOuter = (scaledJBack / 2) - JOYSTICK_TRIM;
+	        rOuter = (scaledJBack / 2) - JOYSTICK_TRIM;	// Radius of the target zones - tweaked by JOYSTICK_TRIM
 	        joystick_back = Bitmap.createScaledBitmap(joystick_back, (int)scaledJBack, (int)scaledJBack, true);
 	        
+	        // Create the joystick indicators
 	        leftIndicator = new ControllerComponent(mContext, leftCenterX, leftCenterY, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
 	        rightIndicator = new ControllerComponent(mContext, rightCenterX, rightCenterY, (float)JOYSTICK_FRONT_SCALE_FACTOR, R.drawable.joy_front);
 	        
+	        // Initial draw of the joystick indicators
 	        mainLayout.addView(leftIndicator);
 	        mainLayout.addView(rightIndicator);
         }
@@ -163,8 +179,67 @@ public class IPGamepad extends Activity {
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             
+            // Draw the joystick backs
 	        canvas.drawBitmap(joystick_back, joyLeft1, joyTop, null);
 	        canvas.drawBitmap(joystick_back, joyLeft2, joyTop, null);
         }
+    }
+    
+    
+    /* Networking/Thread Methods */
+    public synchronized void startNetThread(){
+    	if(networkThread == null) {
+    		networkThread = new Thread();
+    		networkThread.start();
+    	}
+    }
+
+    
+    public synchronized void stopNetThread(){
+    	if(networkThread != null) {
+    		Thread stopThread = networkThread;
+    		networkThread = null;
+    		stopThread.interrupt();
+    	}
+    }
+
+    
+    /* Main data transmit method - this handles the UDP crafting and transmission */
+    public void run(){
+    	while(Thread.currentThread() == networkThread){
+    		if (controlsAlive) {
+	    		/*try {
+	    			//TODO - Send the proper values for joysticks here
+					byte[] buf = new byte[] { (byte)0, (byte)255 };
+					//TODO - Only transmit data when connected to WiFi
+					DatagramSocket s = new DatagramSocket();
+					InetAddress local = InetAddress.getByName(IP_ADDRESS);
+					DatagramPacket p = new DatagramPacket(buf, buf.length, local, PORT);
+					s.send(p);
+				} catch (Exception e) {}*/
+				try {
+					Thread.sleep(PACKET_RATE_MS);
+				}
+				catch (InterruptedException e) {}
+    		}
+    	}
+    }
+    
+    
+    @Override
+    protected void onPause() {
+    	// End Ethernet communications
+    	stopNetThread();
+    	
+    	super.onPause();
+    }
+    
+    
+    @Override
+    protected void onResume() {
+    	super.onResume();
+    	
+    	// Begin Ethernet communications
+    	startNetThread();
     }
 }
