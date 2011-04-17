@@ -18,7 +18,7 @@ public class IPGamepad extends Activity {
     /* CONSTANTS - Used for tweaking the UI */
     private final double JOYSTICK_BACK_SCALE_FACTOR = 1.25;
     private final double JOYSTICK_FRONT_SCALE_FACTOR = 1.15;
-    private final float JOYSTICK_TRIM = 30;	// Keep the joystick within the target zones - minor tweak
+    private final float JOYSTICK_TRIM = 40;	// Keep the joystick within the target zones - minor tweak
     
     // We want to know if we should send data over or not
     private boolean controlsAlive = false;
