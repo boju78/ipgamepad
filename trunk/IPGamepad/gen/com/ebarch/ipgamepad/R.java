@@ -11,9 +11,23 @@ public final class R {
     public static final class attr {
     }
     public static final class drawable {
-        public static final int icon=0x7f020000;
+        public static final int background=0x7f020000;
+        public static final int button_a=0x7f020001;
+        public static final int button_a_push=0x7f020002;
+        public static final int button_b=0x7f020003;
+        public static final int button_b_push=0x7f020004;
+        public static final int button_s=0x7f020005;
+        public static final int button_s_push=0x7f020006;
+        public static final int button_y=0x7f020007;
+        public static final int button_y_push=0x7f020008;
+        public static final int button_z=0x7f020009;
+        public static final int button_z_push=0x7f02000a;
+        public static final int icon=0x7f02000b;
+        public static final int joy_back=0x7f02000c;
+        public static final int joy_front=0x7f02000d;
     }
     public static final class id {
+        public static final int mainInterface=0x7f050001;
         public static final int main_view=0x7f050000;
     }
     public static final class layout {
