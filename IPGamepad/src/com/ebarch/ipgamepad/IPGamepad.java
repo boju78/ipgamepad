@@ -6,9 +6,15 @@ import java.net.InetAddress;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Display;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -27,18 +33,16 @@ public class IPGamepad extends Activity {
     // We want to know if we should send data over or not
     private boolean controlsAlive = false;
     
-    // Networking constants - these should eventually become preferences
-    private final int PACKET_RATE_MS = 25;	//Number of ms between UDP packet transmission
-    private final String IP_ADDRESS = "192.168.1.22";
-    private final int PORT = 4444;
+    private ControllerComponent leftIndicator;
+    private ControllerComponent rightIndicator;
+    private StaticLayout mainStaticLayout;
+    private SharedPreferences preferences;
     
-    private volatile ControllerComponent leftIndicator;
-    private volatile ControllerComponent rightIndicator;
-    private volatile StaticLayout mainStaticLayout;
-    
-    private volatile NetworkingThread networkThread;
-    private volatile DatagramSocket udpSocket;
-    private volatile InetAddress ipAddress;
+    private NetworkingThread networkThread;
+    private DatagramSocket udpSocket;
+    private InetAddress ipAddress;
+    private int packetRate;
+    private int port;
     
     private float viewWidth, viewHeight;
 	private float leftCenterX, leftCenterY;
@@ -58,15 +62,36 @@ public class IPGamepad extends Activity {
         mainStaticLayout = new StaticLayout(this);
         mainLayout.addView(mainStaticLayout);
         
+        // Initialize preferences
+		preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        
         // Setup the networking
         try {
         	udpSocket = new DatagramSocket();
-			ipAddress = InetAddress.getByName(IP_ADDRESS);
+			ipAddress = InetAddress.getByName(preferences.getString("ipaddress", "192.168.1.22"));
+			port = Integer.parseInt(preferences.getString("port", "4444"));
+			packetRate = Integer.parseInt(preferences.getString("txinterval", "25"));
         }
         catch (Exception e) {
         	// Networking exception
         }
     }
+    
+    
+    @Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.menu, menu);
+		return true;
+	}
+
+    
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent i = new Intent(this, Preferences.class);
+		startActivity(i);
+		return true;
+	}
     
 
     /* This is our touch event code that is called whenever there is an ACTION_MOVE, ACTION_DOWN, or ACTION_UP event */
@@ -208,18 +233,18 @@ public class IPGamepad extends Activity {
     		    		try {
     		    			// A packet contains 4 bytes - leftJoystickY, leftJoystickX, rightJoystickY, rightJoystickX
     						byte[] buf = new byte[] { leftIndicator.getJoystickByteY(), leftIndicator.getJoystickByteX(), rightIndicator.getJoystickByteY(), rightIndicator.getJoystickByteX() };
-    						DatagramPacket p = new DatagramPacket(buf, buf.length, ipAddress, PORT);
+    						DatagramPacket p = new DatagramPacket(buf, buf.length, ipAddress, port);
     						udpSocket.send(p);
     					} catch (Exception e) {}
     					try {
-    						Thread.sleep(PACKET_RATE_MS);
+    						Thread.sleep(packetRate);
     					}
     					catch (InterruptedException e) {}
     	    		}
     	    		else {
     	    			// Robot is disabled - wait a little bit before trying again
     	    			try {
-    						Thread.sleep(PACKET_RATE_MS);
+    						Thread.sleep(packetRate);
     					}
     					catch (InterruptedException e) {}
     	    		}
