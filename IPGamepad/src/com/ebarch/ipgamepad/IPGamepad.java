@@ -3,6 +3,7 @@ package com.ebarch.ipgamepad;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -68,13 +69,23 @@ public class IPGamepad extends Activity {
         // Setup the networking
         try {
         	udpSocket = new DatagramSocket();
-			ipAddress = InetAddress.getByName(preferences.getString("ipaddress", "192.168.1.22"));
-			port = Integer.parseInt(preferences.getString("port", "4444"));
-			packetRate = Integer.parseInt(preferences.getString("txinterval", "25"));
+        	updateNetworking();
         }
         catch (Exception e) {
         	// Networking exception
         }
+    }
+    
+    
+    /* Call this whenever the network settings need to be reloaded */
+    public void updateNetworking() {
+    	try {
+			ipAddress = InetAddress.getByName(preferences.getString("ipaddress", "192.168.1.22"));
+			port = Integer.parseInt(preferences.getString("port", "4444"));
+			packetRate = Integer.parseInt(preferences.getString("txinterval", "25"));
+    	} catch (UnknownHostException e) {
+    		// Networking exception
+    	}
     }
     
     
@@ -88,8 +99,7 @@ public class IPGamepad extends Activity {
     
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		Intent i = new Intent(this, Preferences.class);
-		startActivity(i);
+		startActivity(new Intent(this, Preferences.class));
 		return true;
 	}
     
@@ -287,6 +297,9 @@ public class IPGamepad extends Activity {
     @Override
     protected void onResume() {
     	super.onResume();
+    	
+    	// Update networking settings
+    	updateNetworking();
     	
     	// Begin Ethernet communications
     	startNetworkingThread();
