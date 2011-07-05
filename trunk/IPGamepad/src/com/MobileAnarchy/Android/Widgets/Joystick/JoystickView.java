@@ -1,9 +1,14 @@
 package com.MobileAnarchy.Android.Widgets.Joystick;
 
+import com.ebarch.ipgamepad.R;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
@@ -69,7 +74,6 @@ public class JoystickView extends View {
 	private int cX, cY;
 
 	//Size of the view in view coordinates
-	@SuppressWarnings("unused")
 	private int dimX, dimY;
 
 	//Cartesian coordinates of last touch point - joystick center is (0,0)
@@ -123,12 +127,10 @@ public class JoystickView extends View {
 		dbgPaint2.setStyle(Paint.Style.STROKE);
 		
 		bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		bgPaint.setColor(Color.rgb(180, 180, 180));
-		bgPaint.setStrokeWidth(1);
-		bgPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+		bgPaint.setStyle(Paint.Style.FILL);
 
 		handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		handlePaint.setColor(Color.rgb(20, 20, 20));
+		handlePaint.setColor(Color.rgb(15, 15, 15));
 		handlePaint.setStrokeWidth(1);
 		handlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
 
@@ -248,6 +250,12 @@ public class JoystickView extends View {
 		cY = d / 2;
 		
 		bgRadius = dimX/2 - innerPadding;
+		
+		Bitmap backTexture = BitmapFactory.decodeResource(getResources(), R.drawable.joy_back);
+		backTexture = Bitmap.createScaledBitmap(backTexture, dimX, dimY, true);
+		BitmapShader backShader = new BitmapShader(backTexture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+		bgPaint.setShader(backShader);
+		
 		handleRadius = (int)(d * 0.25);
 		handleInnerBoundaries = handleRadius;
 		movementRadius = Math.min(cX, cY) - handleInnerBoundaries;
