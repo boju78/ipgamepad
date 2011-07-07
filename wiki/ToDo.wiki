@@ -1,9 +1,9 @@
-#summary To-Do list of things that need to be implemented
+#summary List of things that need to be implemented
 
-= ToDo List =
+= To-Do List =
 
-1. Reskin the analog joysticks cleanly now that we are using JoystickView
-2. Set GPS waypoints/autonomous mode (giant kill button and constantly sends "alive" packet)
-3. Toggle Switch View
-4. Push buttons
+1. Reskin the analog joysticks cleanly now that we are using JoystickView<br />
+2. Set GPS waypoints/autonomous mode (giant kill button and constantly sends "alive" packet)<br />
+3. Toggle Switch View<br />
+4. Push buttons<br />
 5. "Turbo" mode, so you can increase sensitivity for lower speeds
