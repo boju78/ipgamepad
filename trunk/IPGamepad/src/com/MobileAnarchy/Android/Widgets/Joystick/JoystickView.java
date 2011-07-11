@@ -130,7 +130,7 @@ public class JoystickView extends View {
 		bgPaint.setStyle(Paint.Style.FILL);
 
 		handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		handlePaint.setColor(Color.rgb(15, 15, 15));
+		handlePaint.setColor(Color.rgb(8, 8, 8));
 		handlePaint.setStrokeWidth(1);
 		handlePaint.setStyle(Paint.Style.FILL_AND_STROKE);
 
@@ -251,9 +251,10 @@ public class JoystickView extends View {
 		
 		bgRadius = dimX/2 - innerPadding;
 		
+		// Texturize the back of the joysticks
 		Bitmap backTexture = BitmapFactory.decodeResource(getResources(), R.drawable.joy_back);
 		backTexture = Bitmap.createScaledBitmap(backTexture, dimX, dimY, true);
-		BitmapShader backShader = new BitmapShader(backTexture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+		BitmapShader backShader = new BitmapShader(backTexture, Shader.TileMode.MIRROR, Shader.TileMode.MIRROR);
 		bgPaint.setShader(backShader);
 		
 		handleRadius = (int)(d * 0.25);

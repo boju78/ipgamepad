@@ -1,9 +1,6 @@
 package com.MobileAnarchy.Android.Widgets.Joystick;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -11,12 +8,6 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
 public class DualJoystickView extends LinearLayout {
-	@SuppressWarnings("unused")
-	private static final String TAG = DualJoystickView.class.getSimpleName();
-	
-	private final boolean D = false;
-	private Paint dbgPaint1;
-
 	private JoystickView stickL;
 	private JoystickView stickR;
 
@@ -38,13 +29,6 @@ public class DualJoystickView extends LinearLayout {
 
 	private void initDualJoystickView() {
 		setOrientation(LinearLayout.HORIZONTAL);
-		
-		if ( D ) {
-			dbgPaint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
-			dbgPaint1.setColor(Color.CYAN);
-			dbgPaint1.setStrokeWidth(1);
-			dbgPaint1.setStyle(Paint.Style.STROKE);
-		}
 		
 		pad = new View(getContext());
 	}
@@ -121,14 +105,6 @@ public class DualJoystickView extends LinearLayout {
 	public void setUserCoordinateSystem(int leftCoordinateSystem, int rightCoordinateSystem) {
 		stickL.setUserCoordinateSystem(leftCoordinateSystem);
 		stickR.setUserCoordinateSystem(rightCoordinateSystem);
-	}
-	
-	@Override
-	protected void dispatchDraw(Canvas canvas) {
-		super.dispatchDraw(canvas);
-		if (D) {
-			canvas.drawRect(1, 1, getMeasuredWidth()-1, getMeasuredHeight()-1, dbgPaint1);
-		}
 	}
 	
 	@Override
