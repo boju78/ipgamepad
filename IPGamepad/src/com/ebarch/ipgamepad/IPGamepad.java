@@ -27,10 +27,9 @@ public class IPGamepad extends Activity {
     private InetAddress ipAddress;
     private int packetRate;
     private int port;
-    private boolean headlights;
+    private boolean auxbyte;
     private boolean leftActive, rightActive = false;
     private int leftX, leftY, rightX, rightY = 0;
-    private static double scalingFactor = 0.25;
 	
 	private DualJoystickView joystick;
 	
@@ -62,7 +61,7 @@ public class IPGamepad extends Activity {
     	try {
 			ipAddress = InetAddress.getByName(preferences.getString("ipaddress", "192.168.1.22"));
 			port = Integer.parseInt(preferences.getString("port", "4444"));
-			packetRate = Integer.parseInt(preferences.getString("txinterval", "25"));
+			packetRate = Integer.parseInt(preferences.getString("txinterval", "20"));
     	} catch (UnknownHostException e) {
     		// Networking exception
     	}
@@ -128,15 +127,16 @@ public class IPGamepad extends Activity {
                 	if (leftActive || rightActive) {
                 		// Robot is enabled - let's send some data
     		    		try {
-    		    			// A packet contains 5 bytes - leftJoystickY, leftJoystickX, rightJoystickY, rightJoystickX, headlights
-    		    			byte headlightByte;
+    		    			// A packet contains 5 bytes - leftJoystickY, leftJoystickX, rightJoystickY, rightJoystickX, Aux Byte
+    		    			byte auxByte;
     		    			
-    		    			if (headlights)
-    		    				headlightByte = (byte) 255;
+    		    			// Aux byte can be used for things you'd like to enable/disable on a robot such as headlights or relays
+    		    			if (auxbyte)
+    		    				auxByte = (byte) 255;
     		    			else
-    		    				headlightByte = (byte) 0;
+    		    				auxByte = (byte) 0;
     		    			
-    						byte[] buf = new byte[] { joystickSensitivity(leftY), joystickSensitivity(leftX), joystickSensitivity(rightY), joystickSensitivity(rightX), headlightByte };
+    						byte[] buf = new byte[] { mapJoystick(leftY), mapJoystick(leftX), mapJoystick(rightY), mapJoystick(rightX), auxByte };
     						DatagramPacket p = new DatagramPacket(buf, buf.length, ipAddress, port);
     						udpSocket.send(p);
     					} catch (Exception e) {}
@@ -160,12 +160,8 @@ public class IPGamepad extends Activity {
         }
     }
     
-    private static byte joystickSensitivity(int input) {
-    	double doubleJoystick = mapValue((double)input, -150, 150, -1, 1);
-    	
-    	double scaledValue = ((Math.pow(doubleJoystick,3)) * scalingFactor) + ((1 - scalingFactor) * doubleJoystick);
-    	
-    	int result = (int)mapValue(scaledValue, -1, 1, 0, 255);
+    private static byte mapJoystick(int input) {
+    	int result = (int)mapValue((double)input, -150, 150, 0, 255);
     	
     	if (result < 0)
     		result = 0;
@@ -211,10 +207,7 @@ public class IPGamepad extends Activity {
     	updateNetworking();
     	
     	// Update headlight status
-    	headlights = preferences.getBoolean("headlights", false);
-    	
-    	// Update joystick scaler
-    	scalingFactor = Double.parseDouble(preferences.getString("scalingFactor", "0.25"));
+    	auxbyte = preferences.getBoolean("auxbyte", false);
     	
     	// Begin Ethernet communications
     	startNetworkingThread();
