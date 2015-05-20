@@ -1,0 +1,6 @@
+# To-Do List #
+
+1. Set GPS waypoints/autonomous mode (giant kill button and constantly sends "alive" packet)<br />
+2. Toggle Switch View<br />
+3. Push buttons<br />
+4. "Turbo" mode, so you can increase sensitivity for lower speeds - will be handy for robot demos where you don't want the robot shooting off at high velocity
